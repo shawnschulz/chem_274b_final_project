@@ -96,6 +96,7 @@ class BankingSystemImpl(BankingSystem):
 
     def __init__(self):
         self.list_of_accounts = {}
+        self.list_of_transactions = {} # keys are accountids, values are an array of records (timestamp, balance, account_status)
         self.set_of_accounts = set()
         self.store_top_spenders = []
         self.payments = {} # dictionary of payments
@@ -209,6 +210,12 @@ class BankingSystemImpl(BankingSystem):
             print("wrong account")
             return None"""
 
+    def update_transactions(self, timestamp, account_id, balance, account_active: bool = True):
+        #self.list_of_transactions = {} # keys are accountids, values are an array of records (timestamp, balance, account_status)
+        if account_id in self.list_of_transactions:
+            self.list_of_transactions[account_id].append((timestamp, balance, account_active))
+        else:
+            self.list_of_transactions[account_id] = [(timestamp, balance, account_active)]
 
     def push_to_heap(self):
         self.store_top_spenders.clear()
@@ -254,6 +261,7 @@ class BankingSystemImpl(BankingSystem):
             self.list_of_accounts[account_id] = new_account
             self.set_of_accounts.add(new_account)
             self.push_to_heap()
+            self.update_transactions(timestamp, account_id, new_account.balance)
             return True
         else:
             print("Account Id is already in use.")
@@ -271,6 +279,7 @@ class BankingSystemImpl(BankingSystem):
             # process any cash back before deposit
             self.process_cashback(timestamp, account_to_deposit_to)
             account_to_deposit_to.add_money(deposit_amount)
+            self.update_transactions(timestamp, account_to_deposit_to.Idnumber, account_to_deposit_to.balance)
             return account_to_deposit_to.balance
         else:
             print("Invalid Account")
@@ -288,6 +297,7 @@ class BankingSystemImpl(BankingSystem):
             account_to_withdraw_from.get_money(withdraw_amount)
             # account_to_withdraw_from.spent += withdraw_amount (resulted in overcount)
             self.push_to_heap()
+            self.update_transactions(timestamp, account_to_withdraw_from.Idnumber, account_to_withdraw_from.balance)
 
 
             return True
@@ -307,6 +317,8 @@ class BankingSystemImpl(BankingSystem):
                     account1.get_money(amount)
                     self.push_to_heap()
                     account2.add_money(amount)
+                    self.update_transactions(timestamp, account1.Idnumber, account1.balance)
+                    self.update_transactions(timestamp, account2.Idnumber, account2.balance)
                     return account1.balance
                 else:
                     print("Insufficient Funds")
@@ -343,6 +355,32 @@ class BankingSystemImpl(BankingSystem):
 
                     else:
                         count += 1
+                        
+    def check_cashback(self, timestamp, account):
+        #Very similar to process, but doesn't update anything instead returning
+        #the balance after cashback for the get_balance function.
+        #This is repetitive code so we could modify process_cashback to include this
+        return_balance = account.balance
+
+        # check if the account has any scheduled cashback
+        if len(account.cashback) != 0:
+
+                for i in range(len(account.cashback)):
+
+                    cashback_info = account.cashback[i]
+                    cashback_timestamp = cashback_info[0]
+                    cashback_cash = cashback_info[1]
+                    cashback_payment_key = cashback_info[2]
+
+                    if timestamp >= cashback_timestamp:
+
+                        accountb4 = account.balance
+                        return_balance += cashback_cash
+                        account_after = return_balance 
+
+                        print("Before and after: ", accountb4, account_after)
+        return return_balance
+
 
 
 
@@ -432,5 +470,61 @@ class BankingSystemImpl(BankingSystem):
 
             # Update the heap 
             self.push_to_heap()
+            self.update_transactions(timestamp, account_id_1, account_1.balance)
+            self.update_transactions(timestamp, account_id_2, account_2.balance, account_active=False)
             return True
+
+    def get_balance(self, timestamp: int, account_id: str, time_at: int) -> int | None:
+        """
+        Idea: if the time_at is in the future, check to see what balance would be
+        after processing cash_back etc. at that timestamp. 
+
+        If in past, binary search through list_of_transactions until hit timestamp or in between
+        2 timestamps. Check to see if record with timestamp lesser than time_at 
+        as an account_active == True. If it does, return the balance from that record,
+        otherwise return None
+        """
+        # keys are accountids, values are an array of records (timestamp, balance, account_status)
+        if account_id not in self.list_of_transactions:
+            print("Account doesn't exist")
+            return None
+        transaction_list = self.list_of_transactions[account_id]
+        if transaction_list[-1][0] < time_at and account_id in self.list_of_accounts:
+            account = self.list_of_accounts[account_id]
+            return self.check_cashback(time_at, account)
+        elif transaction_list[-1][0] < time_at and account_id not in self.list_of_accounts:
+            return None
+        if transaction_list[0][0] > time_at:
+            print("Account did not exist at time_at")
+            return None
+        else:
+            low = 0
+            high = len(transaction_list) - 1 
+            while low <= high:
+                mid = (high + low) // 2
+                timestamp, balance, account_active = transaction_list[mid]
+                if timestamp < time_at:
+                    low = mid + 1
+                elif timestamp  > time_at:
+                    high = mid - 1
+                else:
+                    # in this case time_at is exactly equal to a timestamp
+                    if account_active:
+                        return balance 
+                    else:
+                        return None
+            # If we break the loop can use lower bound to check
+            index = 0
+            if transaction_list[high][0] < time_at and transaction_list[low][0] > time_at:
+                index = high
+            elif transaction_list[low][0] < time_at and transaction_list[high][0] > time_at:
+                index = low
+            timestamp, balance, account_active = transaction_list[index]
+            if account_active:
+                return balance
+            else:
+                return None
+                    
+
+ 
 
