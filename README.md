@@ -46,7 +46,7 @@ The following is a brief summary of the performance of each component of the pro
 ### Bank Class:
 
 - `push to heap`:
-	- Logarithmic time O(N log N)
+	- Linearithmic time complexity O(N log N)
 	- This function uses a binary heap from heapq, wWhere N is the number of accounts in the set. The method call heapq’s heap push N times and heap push is O(log N).
 		
 - `get top spender`:
@@ -54,21 +54,21 @@ The following is a brief summary of the performance of each component of the pro
 	- This function uses a binary heap from heapq, which has a logarithmic pop according to heapq documentation.
 	
 - `create account`:
-	- Constant time O(1)
-	- This function searches through a dictionary and doesn’t depend on the size of the input.
+  	- Linearithmic time complexity O(N log N)
+	- This function searches through a dictionary and doesn’t depend on the size of the input, but pushes to the heap, which in the worst case, is the most expensive operation.
 
 - `Deposit`:
 	- Linear time O(n) 
 	- n is the number of times an account has paid money. The method calls process_cashback which loops over the list of pending cashback operations for an account, which in the worst case will be the size of the number of times the account has paid money.
 
 - `Withdraw`:
-	- Linear time O(n) 
-	- n is the number of times an account has paid money. The method calls process_cashback which loops over the list of pending cashback operations for an account, which in the worst case will be the size of the number of times the account has paid money. Withdraw also calls push to heap which would add log(n) time complexity, but O(n + log(n) is equivalent to O(n).
+	- Linearithmic time complexity O(N log N)
+	- N is the number of times an account has paid money. The method calls process_cashback which loops over the list of pending cashback operations for an account, which in the worst case will be the size of the number of times the account has paid money. Withdraw also calls push to heap which would add N log(N) time complexity, so this would eventually be the expensive operation in the worst case.
 
 - `Transfer`:
-	- Logarithmic time O(logn)
+	- Linearithmic time complexity O(N log N)
 	- This method involves pushing to a heap where n is the size of the heap.
 
 - `Top spenders`:
-	- Linearithmic time O(nlogn)
+	- Linearithmic time O(N logN)
 	- For the number (n) of top spenders requested (worst case n = number of accounts), you must pop from the heap which takes O(log n). Therefore, for each account, we have to pop from the heap resulting in linearithmic time.
