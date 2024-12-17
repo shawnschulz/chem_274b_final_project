@@ -46,8 +46,8 @@ The following is a brief summary of the performance of each component of the pro
 ### Bank Class:
 
 - `push to heap`:
-	- Logarithmic time O(logn)
-	- This function uses a binary heap from heapq, which has a logarithmic push according to heapq documentation.
+	- Logarithmic time O(N log N)
+	- This function uses a binary heap from heapq, wWhere N is the number of accounts in the set. The method call heapq’s heap push N times and heap push is O(log N).
 		
 - `get top spender`:
 	- Contains heap-pop which is O(logn)
